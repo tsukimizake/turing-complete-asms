@@ -1,0 +1,80 @@
+# 右が道なら右rotate,一歩進む
+# 右が壁で前が道なら一歩進む
+# 右と前が壁なら左rotate
+# まっすぐ進んできて右が道のとき2歩進むバグがある
+# けど通ったしいいや
+# 64行以上の即値使えないの使いづらすぎる
+#head
+reg4_to_reg1
+1
+reg0_to_reg2
+add
+reg3_to_reg5
+reg5_to_reg1
+4
+reg0_to_reg2
+sub
+13 # $end_rotate_right
+jnz
+0
+reg0_to_reg5
+#end_rotate_right
+reg5_to_out
+in_to_reg0
+reg0_to_reg1
+3
+reg0_to_reg2
+sub
+60 # $when_door
+jz
+in_to_reg0
+reg0_to_reg1
+1
+reg0_to_reg2
+sub
+62 # $when_right_not_wall
+jnz
+reg4_to_out
+in_to_reg0
+reg0_to_reg1
+3
+reg0_to_reg2
+sub
+60 # $when_door
+jz
+in_to_reg0
+reg0_to_reg1
+1
+reg0_to_reg2
+sub
+57 # $when_forward_not_wall
+jnz
+# rotate left
+reg4_to_reg3
+53 # $reg4_zero
+jz
+reg4_to_reg1
+1
+reg0_to_reg2
+sub
+reg3_to_reg4
+0 # $head
+goto
+#reg4_zero
+3
+reg0_to_reg4
+0 # $head
+goto
+#when_forward_not_wall
+reg4_to_out
+0 # $head
+goto
+#when_door
+5
+reg0_to_out
+#when_right_not_wall
+reg5_to_reg4
+reg4_to_out
+reg4_to_out
+0 # $head
+goto

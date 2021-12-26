@@ -1,0 +1,22 @@
+0
+reg0_to_out
+reg0_to_out
+reg0_to_out
+3
+reg0_to_out
+reg0_to_out
+#head
+in_to_reg4
+reg4_to_reg3
+15 # $found_enemy
+jnz
+#not_found_enemy
+4
+reg0_to_out
+7 # $head
+goto
+#found_enemy
+6
+reg0_to_out
+7 # $head
+goto
