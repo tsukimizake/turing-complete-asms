@@ -32,14 +32,23 @@ fn assert_num(token: String) -> String {
     }
 }
 fn assert_reg(token: String) -> String {
-    if token == "reg4" || token == "reg5" {
+    if token.starts_with("reg") {
         return token;
     } else {
         throw_parse_error(&token)
     }
 }
 
+fn assert_label_callsite(token: &String) -> String {
+    if token.starts_with("$") {
+        return token.to_string();
+    } else {
+        throw_parse_error(&token)
+    }
+}
 // jneq reg4 3 $label 的なreg4,reg5とinputの比較のみ対応
+// のつもりだったけどreg0でも使いたくて使えるようになった
+// 使う時は注意して
 fn gen_jneq(line: &str) -> String {
     if let Some(l) = strip_instr(line, "jneq") {
         let args = l.split(" ").collect::<Vec<&str>>();
@@ -53,10 +62,82 @@ fn gen_jneq(line: &str) -> String {
             "sub".to_string(),
             label.to_string(),
             "jnz".to_string(),
+            "\n".to_string(),
         ]);
     } else {
         line.to_string() + "\n"
     }
+}
+
+// not completed (or not possible?)
+fn gen_jeq(line: &str) -> String {
+    if let Some(l) = strip_instr(line, "jneq") {
+        let args = l.split(" ").collect::<Vec<&str>>();
+        let reg = *args.get(0).unwrap();
+        let val = *args.get(1).unwrap();
+        let label = *args.get(2).unwrap();
+        let inv_label_callsite = label.to_string() + "_inverted";
+        let inv_label = assert_label_callsite(&inv_label_callsite)
+            .strip_prefix("$")
+            .map(|l| "@".to_owned() + l)
+            .unwrap();
+
+        return concat_lines(vec![
+            (assert_reg(reg.to_string()) + "_to_reg1"),
+            assert_num(val.to_string()),
+            "reg0_to_reg2".to_string(),
+            "sub".to_string(),
+            inv_label_callsite,
+            "jnz".to_string(),
+            inv_label,
+            "\n".to_string(),
+        ]);
+    } else {
+        line.to_string() + "\n"
+    }
+}
+
+fn gen_load_register_or_immediate(reg_or_imm: &str, dest_reg: &str) -> Vec<String> {
+    if reg_or_imm == "in" {
+        vec!["in_to_".to_string() + dest_reg]
+    } else if reg_or_imm.starts_with("reg") {
+        vec![reg_or_imm.to_string() + "_to_" + dest_reg]
+    } else {
+        vec![
+            assert_num(reg_or_imm.to_string()),
+            "reg0_to_".to_string() + dest_reg,
+        ]
+    }
+}
+
+// add reg4 reg5
+// add in reg4
+// add reg4 3
+// 的な
+fn gen_math(instr: &str, line: &str) -> String {
+    if let Some(l) = strip_instr(line, instr) {
+        let args = l.split(" ").collect::<Vec<&str>>();
+        let lhs = *args.get(0).unwrap();
+        let rhs = *args.get(1).unwrap();
+
+        let instrs = gen_load_register_or_immediate(lhs, "reg1")
+            .into_iter()
+            .chain(gen_load_register_or_immediate(rhs, "reg2"))
+            .chain(vec![instr.to_string()])
+            .chain(vec!["\n".to_string()])
+            .collect();
+        return concat_lines(instrs);
+    } else {
+        line.to_string()
+    }
+}
+
+fn gen_add(line: &str) -> String {
+    gen_math("add", line)
+}
+
+fn gen_sub(line: &str) -> String {
+    gen_math("sub", line)
 }
 
 fn translate_tokens(input: String) -> String {
@@ -64,6 +145,8 @@ fn translate_tokens(input: String) -> String {
         .lines()
         .map(|line| gen_goto(line.to_string()))
         .map(|line| gen_jneq(line.as_str()))
+        .map(|line| gen_add(line.as_str()))
+        .map(|line| gen_sub(line.as_str()))
         .collect::<String>()
 }
 

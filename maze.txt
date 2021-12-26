@@ -1,0 +1,50 @@
+# 右が道なら右rotate,一歩進む
+# 右が壁で前が道なら一歩進む
+# 右と前が壁なら左rotate
+# まっすぐ進んできた->右が道のとき2歩進むバグがある
+# 左rotate->前が道も2歩進む
+# exit(3)に向かってuseしないといけないらしい
+0
+reg0_to_reg4
+1
+reg0_to_reg5
+
+@head
+
+add reg4 1
+reg3_to_reg5
+jneq reg5 4 $end_rotate_right
+
+0
+reg0_to_reg5
+
+@end_rotate_right
+
+reg5_to_out
+in_to_reg0
+jneq reg0 1 $when_right_not_wall
+
+reg4_to_out
+in_to_reg0
+jneq reg0 1 $when_forward_not_wall
+
+# rotate left
+sub reg4 1
+reg3_to_reg4
+
+jneq reg4 255 $end_rotate_left
+goto $head
+@end_rotate_left
+3
+reg0_to_reg4
+goto $head
+
+@when_right_not_wall
+reg5_to_reg4
+reg4_to_out
+reg4_to_out
+goto $head
+
+@when_forward_not_wall
+reg4_to_out
+goto $head
