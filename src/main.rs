@@ -50,28 +50,11 @@ fn assert_label_callsite(token: &String) -> String {
 // のつもりだったけどreg0でも使いたくて使えるようになった
 // 使う時は注意して
 fn gen_jneq(line: &str) -> String {
-    if let Some(l) = strip_instr(line, "jneq") {
-        let args = l.split(" ").collect::<Vec<&str>>();
-        let reg = *args.get(0).unwrap();
-        let val = *args.get(1).unwrap();
-        let label = *args.get(2).unwrap();
-        return concat_lines(vec![
-            (assert_reg(reg.to_string()) + "_to_reg1"),
-            assert_num(val.to_string()),
-            "reg0_to_reg2".to_string(),
-            "sub".to_string(),
-            label.to_string(),
-            "jnz".to_string(),
-            "\n".to_string(),
-        ]);
-    } else {
-        line.to_string() + "\n"
-    }
+    gen_cond("jneq", "jnz", line)
 }
 
-// not completed (or not possible?)
-fn gen_jeq(line: &str) -> String {
-    if let Some(l) = strip_instr(line, "jneq") {
+fn gen_cond(instr: &str, asm_opcode: &str,  line: &str) -> String {
+    if let Some(l) = strip_instr(line, instr) {
         let args = l.split(" ").collect::<Vec<&str>>();
         let reg = *args.get(0).unwrap();
         let val = *args.get(1).unwrap();
@@ -87,14 +70,17 @@ fn gen_jeq(line: &str) -> String {
             assert_num(val.to_string()),
             "reg0_to_reg2".to_string(),
             "sub".to_string(),
-            inv_label_callsite,
-            "jnz".to_string(),
-            inv_label,
+            label.to_string(),
+            asm_opcode.to_string(),
             "\n".to_string(),
         ]);
     } else {
         line.to_string() + "\n"
     }
+}
+
+fn gen_jeq(line: &str) -> String {
+    gen_cond("jeq", "jz", line)
 }
 
 fn gen_load_register_or_immediate(reg_or_imm: &str, dest_reg: &str) -> Vec<String> {
