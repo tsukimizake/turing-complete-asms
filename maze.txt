@@ -37,9 +37,6 @@ goto $head
 reg0_to_reg4
 goto $head
 
-@when_forward_not_wall
-reg4_to_out
-goto $head
 
 @when_door
 5
@@ -47,7 +44,7 @@ reg0_to_out
 
 @when_right_not_wall
 reg5_to_reg4
-reg4_to_out
+
+@when_forward_not_wall
 reg4_to_out
 goto $head
-

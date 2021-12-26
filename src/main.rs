@@ -67,6 +67,13 @@ fn gen_zero_cond(asm_opcode: &str, reg: &str, label: &str) -> String {
     ]);
 }
 
+fn gen_mv(lhs: &str, rhs: &str) -> String {
+    if lhs == rhs {
+        "".to_string()
+    } else {
+        lhs.to_string() + "_to_" + rhs
+    }
+}
 fn gen_cond(instr: &str, asm_opcode: &str, line: &str) -> String {
     if let Some(l) = strip_instr(line, instr) {
         let args = l.split(" ").collect::<Vec<&str>>();
@@ -79,7 +86,7 @@ fn gen_cond(instr: &str, asm_opcode: &str, line: &str) -> String {
             return gen_zero_cond(asm_opcode, reg, label);
         } else {
             return concat_lines(vec![
-                (assert_reg(reg.to_string()) + "_to_reg1"),
+                gen_mv(&assert_reg(reg.to_string()), "reg1"),
                 assert_num(val.to_string()),
                 "reg0_to_reg2".to_string(),
                 "sub".to_string(),
