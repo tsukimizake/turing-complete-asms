@@ -39,7 +39,7 @@ fn assert_reg(token: String) -> String {
     }
 }
 
-fn assert_label_callsite(token: &String) -> String {
+fn assert_label_callsite(token: &str) -> String {
     if token.starts_with("$") {
         return token.to_string();
     } else {
@@ -53,34 +53,44 @@ fn gen_jneq(line: &str) -> String {
     gen_cond("jneq", "jnz", line)
 }
 
-fn gen_cond(instr: &str, asm_opcode: &str,  line: &str) -> String {
+fn gen_jeq(line: &str) -> String {
+    gen_cond("jeq", "jz", line)
+}
+
+// jneq reg4 0 $label 的な0との比較の場合subを省略できる
+fn gen_zero_cond(asm_opcode: &str, reg: &str, label: &str) -> String {
+    return concat_lines(vec![
+        (assert_reg(reg.to_string()) + "_to_reg3"),
+        label.to_string(),
+        asm_opcode.to_string(),
+        "\n".to_string(),
+    ]);
+}
+
+fn gen_cond(instr: &str, asm_opcode: &str, line: &str) -> String {
     if let Some(l) = strip_instr(line, instr) {
         let args = l.split(" ").collect::<Vec<&str>>();
         let reg = *args.get(0).unwrap();
         let val = *args.get(1).unwrap();
         let label = *args.get(2).unwrap();
-        let inv_label_callsite = label.to_string() + "_inverted";
-        let inv_label = assert_label_callsite(&inv_label_callsite)
-            .strip_prefix("$")
-            .map(|l| "@".to_owned() + l)
-            .unwrap();
+        assert_label_callsite(label);
 
-        return concat_lines(vec![
-            (assert_reg(reg.to_string()) + "_to_reg1"),
-            assert_num(val.to_string()),
-            "reg0_to_reg2".to_string(),
-            "sub".to_string(),
-            label.to_string(),
-            asm_opcode.to_string(),
-            "\n".to_string(),
-        ]);
+        if let Ok(0) = val.parse() {
+            return gen_zero_cond(asm_opcode, reg, label);
+        } else {
+            return concat_lines(vec![
+                (assert_reg(reg.to_string()) + "_to_reg1"),
+                assert_num(val.to_string()),
+                "reg0_to_reg2".to_string(),
+                "sub".to_string(),
+                label.to_string(),
+                asm_opcode.to_string(),
+                "\n".to_string(),
+            ]);
+        }
     } else {
         line.to_string() + "\n"
     }
-}
-
-fn gen_jeq(line: &str) -> String {
-    gen_cond("jeq", "jz", line)
 }
 
 fn gen_load_register_or_immediate(reg_or_imm: &str, dest_reg: &str) -> Vec<String> {
@@ -131,6 +141,7 @@ fn translate_tokens(input: String) -> String {
         .lines()
         .map(|line| gen_goto(line.to_string()))
         .map(|line| gen_jneq(line.as_str()))
+        .map(|line| gen_jeq(line.as_str()))
         .map(|line| gen_add(line.as_str()))
         .map(|line| gen_sub(line.as_str()))
         .collect::<String>()
@@ -212,12 +223,24 @@ fn labels_to_comments(input: String) -> String {
     )
 }
 
+fn remove_newlines(input: String) -> String {
+    concat_lines(
+        input
+            .lines()
+            .filter(|l| !l.is_empty())
+            .map(|l| l.to_string())
+            .collect(),
+    )
+}
+
 fn main() {
     if let Some(filename) = env::args().nth(1) {
         let res: Result<String, std::io::Error> = fs::read_to_string(filename)
             .map(|s| translate_tokens(s))
             .map(|s| label_to_linum(s))
-            .map(|s| labels_to_comments(s));
+            .map(|s| labels_to_comments(s))
+            .map(|s| remove_newlines(s));
+
         match res {
             Err(e) => println!("{}", e),
             Ok(r) => println!("{}", r),

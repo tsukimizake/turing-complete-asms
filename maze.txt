@@ -1,7 +1,8 @@
 # 右が道なら右rotate,一歩進む
 # 右が壁で前が道なら一歩進む
 # 右と前が壁なら左rotate
-# まっすぐ進んできた->右が道のとき2歩進むバグがあるけど通りそうだしいいや
+# まっすぐ進んできて右が道のとき2歩進むバグがある
+# けど通ったしいいや
 # 64行以上の即値使えないの使いづらすぎる
 
 @head
@@ -15,31 +16,23 @@ reg0_to_reg5
 
 reg5_to_out
 in_to_reg0
-jneq reg0 3 $when_right_not_door
-# when_right_is_door
-5
-reg0_to_out
-@when_right_not_door
+jeq reg0 3 $when_door
 in_to_reg0
 jneq reg0 1 $when_right_not_wall
 
 reg4_to_out
 in_to_reg0
-jneq reg0 3 $when_forward_not_door
-# when_door
-5
-@when_forward_not_door
-reg0_to_out
+jeq reg0 3 $when_door
+in_to_reg0
 jneq reg0 1 $when_forward_not_wall
 
 # rotate left
+jeq reg4 0 $reg4_zero
 sub reg4 1
 reg3_to_reg4
-
-jneq reg4 255 $end_rotate_left
 goto $head
-@end_rotate_left
 
+@reg4_zero
 3
 reg0_to_reg4
 goto $head
@@ -47,6 +40,10 @@ goto $head
 @when_forward_not_wall
 reg4_to_out
 goto $head
+
+@when_door
+5
+reg0_to_out
 
 @when_right_not_wall
 reg5_to_reg4
